@@ -1,0 +1,31 @@
+{
+  "name": "flightgenom",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Realtime flight visualization (FlightRadar24-style) MVP — MapLibre + deck.gl + Fastify WebSocket",
+  "scripts": {
+    "dev": "concurrently -n server,web -c green,cyan \"npm run dev:server\" \"npm run dev:web\"",
+    "dev:server": "node --watch server/src/index.js",
+    "dev:web": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "node server/src/index.js"
+  },
+  "dependencies": {
+    "@fastify/websocket": "^11.0.1",
+    "dotenv": "^16.4.5",
+    "fastify": "^5.1.0"
+  },
+  "devDependencies": {
+    "@deck.gl/core": "^9.0.38",
+    "@deck.gl/layers": "^9.0.38",
+    "@deck.gl/mapbox": "^9.0.38",
+    "concurrently": "^9.1.0",
+    "maplibre-gl": "^4.7.1",
+    "vite": "^5.4.10"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>flightgenom — live delay genome</title>
+  </head>
+  <body>
+    <div id="map"></div>
+
+    <header id="hud">
+      <div class="brand">flightgenom</div>
+      <div class="sub"><span id="count">0</span> aircraft · <span id="status">connecting…</span></div>
+      <div class="src" id="source" hidden></div>
+      <div class="hud-tools">
+        <button id="lb-btn" class="hud-btn" hidden>worst cascades</button>
+        <button id="disrupt-btn" class="hud-btn" hidden>disruption</button>
+        <button id="ai-btn" class="hud-btn" hidden>AI briefing</button>
+      </div>
+    </header>
+
+    <div id="badge" hidden>⚠ SIMULATED — delays &amp; genome are synthetic</div>
+
+    <div id="legend">
+      <div class="row">
+        <span id="legend-title">Delay genome</span>
+        <button id="toggle" title="Cycle color mode">mode</button>
+      </div>
+      <div id="legend-body"></div>
+      <div class="hint">click a flight → trace its delay cascade</div>
+    </div>
+
+    <aside id="panel" hidden>
+      <button id="panel-close" title="Close (Esc)">✕</button>
+      <div id="panel-content"></div>
+    </aside>
+
+    <section id="leaderboard" hidden>
+      <div class="row">
+        <span id="leaderboard-title">Worst cascades today</span>
+        <button id="leaderboard-close" title="Hide">✕</button>
+      </div>
+      <div id="leaderboard-body"></div>
+    </section>
+
+    <aside id="ai-panel" hidden>
+      <div class="ai-head">
+        <span class="ai-title">AI briefing</span>
+        <div class="ai-controls">
+          <select id="ai-model" title="Analysis model"></select>
+          <button id="ai-refresh" class="ai-mini" title="Re-analyze">↻</button>
+          <button id="ai-close" class="ai-mini" title="Close">✕</button>
+        </div>
+      </div>
+      <div id="ai-content"></div>
+    </aside>
+
+    <div id="marks-bar" hidden></div>
+
+    <div id="tooltip" hidden></div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
