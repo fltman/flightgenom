@@ -17,6 +17,9 @@ export const config = {
   simFleet: num(process.env.SIM_FLEET, 70),
   simSpeed: num(process.env.SIM_SPEED, 1),
 
+  // ── livesim: REAL ADS-B positions + SIMULATED genome. Which feed for positions. ──
+  livesimFeed: process.env.LIVESIM_FEED || 'airplaneslive',
+
   // ── live ADS-B: readsb-style point query (adsb.lol / adsb.fi / airplanes.live) ──
   center: list(process.env.CENTER, [59.3293, 18.0686]), // [lat, lon] — Stockholm
   radiusNm: num(process.env.RADIUS_NM, 250),

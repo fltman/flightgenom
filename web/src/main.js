@@ -18,6 +18,7 @@ const fleet = new FleetStore();
 const icon = makePlaneIcon();
 let colorMode = 'genome';
 let hasGenome = false;
+let dataSource = 'sim';
 
 // flight graph (sim only): id -> leg, and parent -> [children]
 const byId = new Map();
@@ -139,6 +140,7 @@ map.addControl(overlay);
     const cfg = await fetch('/api/config').then((r) => r.json());
     colorMode = MODES.includes(cfg.colorMode) ? cfg.colorMode : 'genome';
     hasGenome = !!cfg.hasGenome;
+    dataSource = cfg.dataSource || 'sim';
     if (cfg.simulated) els.badge.hidden = false;
     // active data source line: attribution string if provided, else the source id
     els.source.textContent = `source: ${cfg.attribution || cfg.dataSource || (cfg.simulated ? 'sim' : 'live')}`;
@@ -148,23 +150,38 @@ map.addControl(overlay);
       map.jumpTo({ center: [cfg.center[1], cfg.center[0]], zoom: 6.5 });
     }
     for (const a of cfg.airports || []) airportMap[a.code] = a;
-    if (hasGenome) {
-      const graph = await fetch('/api/graph').then((r) => r.json());
-      for (const l of graph) {
-        byId.set(l.id, l);
-        if (l.parentId) {
-          if (!childrenByParent.has(l.parentId)) childrenByParent.set(l.parentId, []);
-          childrenByParent.get(l.parentId).push(l);
-        }
-      }
-    }
+    await loadGraph();
     setupAnalyst(cfg.analyst);
   } catch {
     /* run with defaults */
   }
   updateLegend();
   initGenomeFeatures();
+  // livesim/aeroapi genomes evolve (and follow the map) — refresh periodically.
+  if (hasGenome && dataSource !== 'sim') setInterval(refreshGenome, 20000);
 })();
+
+async function refreshGenome() {
+  await loadGraph();
+  if (byId.size) {
+    disruptRows = aggregate(Array.from(byId.values()), airportMap);
+    refreshLeaderboard();
+  }
+}
+
+async function loadGraph() {
+  if (!hasGenome) return;
+  const graph = await fetch('/api/graph').then((r) => r.json()).catch(() => []);
+  byId.clear();
+  childrenByParent.clear();
+  for (const l of graph) {
+    byId.set(l.id, l);
+    if (l.parentId) {
+      if (!childrenByParent.has(l.parentId)) childrenByParent.set(l.parentId, []);
+      childrenByParent.get(l.parentId).push(l);
+    }
+  }
+}
 
 // The AI briefing needs a flight graph (sim or aeroapi). Populate the model
 // selector and reveal the toggle; if no key is configured the panel still shows
@@ -274,7 +291,15 @@ function sendViewport() {
   api.sendViewport([b.getWest(), b.getSouth(), b.getEast(), b.getNorth()]);
 }
 map.on('load', sendViewport);
-map.on('moveend', sendViewport);
+let regionRefreshTimer = null;
+map.on('moveend', () => {
+  sendViewport();
+  // after the server has re-queried the new area, refresh the genome graph
+  if (hasGenome && dataSource !== 'sim') {
+    clearTimeout(regionRefreshTimer);
+    regionRefreshTimer = setTimeout(refreshGenome, 5000);
+  }
+});
 
 // ── selection / cascade tree ──
 function computeSelection(id) {

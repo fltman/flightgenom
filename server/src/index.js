@@ -6,6 +6,17 @@ import { getSource } from './sources/index.js';
 import { getEnrichment } from './enrichment/index.js';
 import { startPoller } from './poller.js';
 import { analyze } from './analyst.js';
+import { haversineKm } from './sim/geo.js';
+
+// Live sources query a point/bbox region; make that region follow the client's
+// map viewport so panning to a new area fetches that area's aircraft.
+function updateQueryRegion(bounds) {
+  const [w, s, e, n] = bounds;
+  config.center = [(s + n) / 2, (w + e) / 2]; // [lat, lon]
+  config.bbox = [w, s, e, n];
+  const km = haversineKm([config.center[1], config.center[0]], [w, n]); // centre→corner
+  config.radiusNm = Math.min(250, Math.max(20, Math.round(km / 1.852)));
+}
 
 // Curated OpenRouter models offered in the UI selector (the configured default
 // is always included). Any OpenRouter model id also works via ?model=.
@@ -26,6 +37,10 @@ if (source.init) source.init(config);
 // clobbered by) the external schedule enrichment.
 const hasOwnGenome = source.meta ? !!source.meta().hasGenome : false;
 const enrichment = hasOwnGenome ? null : getEnrichment(config.scheduleSource);
+
+// The configured start-center for the map's initial view — kept stable even as
+// the live query region (config.center/bbox) follows the viewport afterwards.
+const initialCenter = config.dataSource === 'sim' ? null : [...config.center];
 
 const FIELDS = [
   'id', 'hex', 'callsign', 'lat', 'lon', 'track', 'speed', 'alt', 'onGround',
@@ -62,7 +77,10 @@ fastify.register(async (f) => {
     socket.on('message', (raw) => {
       try {
         const m = JSON.parse(raw.toString());
-        if (m.type === 'viewport' && Array.isArray(m.bounds)) client.bounds = m.bounds;
+        if (m.type === 'viewport' && Array.isArray(m.bounds)) {
+          client.bounds = m.bounds;
+          if (config.dataSource !== 'sim') updateQueryRegion(m.bounds);
+        }
       } catch {
         /* ignore */
       }
@@ -76,14 +94,14 @@ fastify.get('/api/config', async () => {
   return {
     colorMode: config.colorMode,
     dataSource: config.dataSource,
-    simulated: config.dataSource === 'sim',
+    simulated: config.dataSource === 'sim' || config.dataSource === 'livesim',
     scheduleSource: config.scheduleSource,
     airports: meta.airports || [],
     hasGenome: !!meta.hasGenome,
     attribution: meta.attribution || null,
-    // [lat, lon] focus point for point-query live sources, so the map opens
-    // where the data actually is.
-    center: config.dataSource === 'sim' ? null : config.center,
+    // [lat, lon] stable focus point for the map's initial view (the live query
+    // region follows the viewport afterwards).
+    center: initialCenter,
     analyst: {
       enabled: !!config.openrouterKey,
       defaultModel: config.analystModel,
