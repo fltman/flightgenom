@@ -74,8 +74,16 @@ badge). Copy `.env.example` → `.env` to change anything.
 - **Click → cascade tree** — any flight opens a side panel: **Caused by** (the
   upstream chain) and the **Knock-on cascade** (the branching downstream tree).
   The map draws orange arcs upstream and red arcs to every flight it delayed.
+- **Interactive cascade diagram** — a Mermaid node-link graph of the whole
+  cascade family: nodes colored cause/victim, edges labeled with the propagated
+  minutes, every node clickable to navigate.
+- **Passenger impact** — each flight carries an estimated passenger count (from
+  aircraft type when known). The cascade diagram and panel show each flight's
+  own pax **and** the aggregated **Σ passengers affected** down its subtree (own
+  included). A headline HUD stat sums it network-wide: **passengers delayed** and
+  **person-years of human time lost** (Σ pax × delay).
 - **Worst cascades leaderboard** — the root-cause flights whose delay rippled the
-  furthest; click to jump to a cascade.
+  furthest (flights + passengers affected); click to jump to a cascade.
 - **Airport disruption heatmap** — graded bubbles showing _where_ delay is created.
 - **Genome marking** — pin one or more genomes (⚑); every flight carrying them
   lights up in that genome's color and the rest dim. Mark several to compare

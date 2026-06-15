@@ -4,3 +4,8 @@ dist/
 .env.local
 *.log
 .DS_Store
+
+# demo build intermediates (keep the final mp4, shots, narration)
+demo/clips/
+demo/audio/
+demo/shots2/

@@ -10,6 +10,7 @@ import { makeAircraftLayer, makeArcLayer, makeAirportLayer, makeRingLayer } from
 import { worstCascades, renderLeaderboard } from './leaderboard.js';
 import { aggregate, makeDisruptionLayer } from './disruption.js';
 import { renderAnalysis, renderLoading } from './analyst-panel.js';
+import { buildDef, renderInto } from './cascade-diagram.js';
 import './style.css';
 
 const MODES = ['genome', 'delay', 'altitude'];
@@ -31,7 +32,7 @@ let currentSel = null; // computed selection (arcs, members, lists)
 // ── DOM ──
 const $ = (id) => document.getElementById(id);
 const els = {
-  count: $('count'), status: $('status'), badge: $('badge'), source: $('source'),
+  count: $('count'), status: $('status'), badge: $('badge'), source: $('source'), impact: $('impact'),
   legend: $('legend'), legendTitle: $('legend-title'), legendBody: $('legend-body'), toggle: $('toggle'),
   panel: $('panel'), panelContent: $('panel-content'), panelClose: $('panel-close'),
   tooltip: $('tooltip'),
@@ -40,6 +41,8 @@ const els = {
   aiBtn: $('ai-btn'), aiPanel: $('ai-panel'), aiModel: $('ai-model'),
   aiRefresh: $('ai-refresh'), aiClose: $('ai-close'), aiContent: $('ai-content'),
   marksBar: $('marks-bar'),
+  diagramModal: $('diagram-modal'), diagramBody: $('diagram-body'),
+  diagramClose: $('diagram-close'), diagramTitle: $('diagram-title'),
 };
 
 // ── extra features (sim only): leaderboard + airport disruption layer ──
@@ -339,7 +342,29 @@ function computeSelection(id) {
     codes.add(l.dest);
   });
   const airportPts = [...codes].filter(A).map((c) => ({ position: [A(c).lon, A(c).lat], code: c }));
-  return { node, ancestors, desc, memberSet, arcs, airportPts };
+  const affectedPax = (node.pax || 0) + desc.reduce((s, d) => s + (d.pax || 0), 0);
+
+  // Snapshot the FULL cascade family (rooted at the chain's root) now, so the
+  // diagram stays valid even after the live graph churns/refreshes.
+  const familyRoot = ancestors.length ? ancestors[0].id : node.id;
+  const famNodes = [];
+  const fseen = new Set();
+  (function rec(x) {
+    const n = byId.get(x);
+    if (!n || fseen.has(x)) return;
+    fseen.add(x);
+    famNodes.push(n);
+    for (const c of childrenByParent.get(x) || []) rec(c.id);
+  })(byId.has(familyRoot) ? familyRoot : node.id);
+  const sbid = new Map(famNodes.map((n) => [n.id, n]));
+  const scbp = new Map();
+  for (const n of famNodes) {
+    if (n.parentId && sbid.has(n.parentId)) {
+      if (!scbp.has(n.parentId)) scbp.set(n.parentId, []);
+      scbp.get(n.parentId).push(n);
+    }
+  }
+  return { node, ancestors, desc, memberSet, arcs, airportPts, affectedPax, snapshot: { bid: sbid, cbp: scbp } };
 }
 
 function selectFlight(id) {
@@ -397,30 +422,70 @@ function renderPanel(sel) {
     : '<span class="muted">No downstream flights affected.</span>';
 
   const marked = marks.has(n.id);
+  const inChain = sel.desc.length > 0 || sel.ancestors.length > 0;
   els.panelContent.innerHTML =
     `<div class="p-cs">${n.callsign}</div>` +
     `<div class="p-route">${n.origin} → ${n.dest}</div>` +
     `<div class="p-stat">` +
     `<div><div class="k">Delay</div><div class="v">${n.delayMin}m</div></div>` +
-    `<div><div class="k">Reactionary</div><div class="v">${n.reactionaryDelayMin || 0}m</div></div>` +
     `<div><div class="k">Blast radius</div><div class="v">${n.blastRadius || 0}</div></div>` +
+    `<div><div class="k">Pax hit</div><div class="v">${sel.affectedPax.toLocaleString()}</div></div>` +
     `</div>` +
+    `<div class="p-btn-row">` +
     `<button class="mark-btn${marked ? ' on' : ''}" data-mark-genome="${n.id}">${
-      marked ? '✓ Genome marked' : '⚑ Mark this genome'
+      marked ? '✓ Marked' : '⚑ Mark genome'
     }</button>` +
+    (inChain ? `<button class="diagram-btn" data-open-diagram="1">⬗ Diagram</button>` : '') +
+    `</div>` +
     `<div class="p-sec-title">Caused by</div><div class="chain">${causedBy}</div>` +
-    `<div class="p-sec-title">Knock-on cascade${sel.desc.length ? ` (${sel.desc.length} flights)` : ''}</div>${tree}`;
+    `<div class="p-sec-title">Knock-on cascade${
+      sel.desc.length ? ` · ${sel.desc.length} flights · ${sel.affectedPax.toLocaleString()} pax` : ''
+    }</div>${tree}`;
 }
 
-// panel interactions: mark the genome, or reselect a node in the tree
+// panel interactions: mark the genome, open the diagram, or reselect a tree node
 els.panelContent.addEventListener('click', (e) => {
   const mb = e.target.closest('[data-mark-genome]');
   if (mb) return toggleMark(mb.dataset.markGenome);
+  if (e.target.closest('[data-open-diagram]')) return openDiagram();
   const node = e.target.closest('.node[data-id]');
   if (node) selectFlight(node.dataset.id);
 });
 els.panelClose.addEventListener('click', clearSelection);
-window.addEventListener('keydown', (e) => e.key === 'Escape' && clearSelection());
+window.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  if (!els.diagramModal.hidden) closeDiagram();
+  else clearSelection();
+});
+
+// ── interactive cascade diagram (Mermaid), built from the cached snapshot ──
+async function openDiagram(focusId) {
+  if (!currentSel || !currentSel.snapshot) return;
+  const snap = currentSel.snapshot;
+  const id = focusId && snap.bid.has(focusId) ? focusId : selectedId;
+  const r = buildDef(id, snap.bid, snap.cbp);
+  if (!r) return;
+  els.diagramTitle.textContent = `Cascade — ${r.count} flights · ${r.pax.toLocaleString()} passengers`;
+  els.diagramModal.hidden = false;
+  els.diagramBody.innerHTML = '<div class="muted">rendering…</div>';
+  try {
+    await renderInto(els.diagramBody, r.def);
+    // Nodes clickable → re-highlight that flight within the same diagram.
+    els.diagramBody.querySelectorAll('.node').forEach((el) => {
+      const m = el.id.match(/flowchart-(.+)-\d+$/); // id = "<renderId>-flowchart-<nid>-<i>"
+      const nodeId = m && r.nidToId[m[1]];
+      if (!nodeId) return;
+      el.style.cursor = 'pointer';
+      el.addEventListener('click', () => openDiagram(nodeId));
+    });
+  } catch (err) {
+    els.diagramBody.innerHTML = `<div class="muted">Could not render diagram: ${err.message}</div>`;
+  }
+}
+function closeDiagram() {
+  els.diagramModal.hidden = true;
+}
+els.diagramClose.addEventListener('click', closeDiagram);
 
 // ── interaction handlers for deck ──
 function onAircraftClick(info) {
@@ -454,10 +519,36 @@ function onDisruptionHover(info) {
     `<span class="t-d">+${o.originatedDelayMin}m originated · ${o.delayedDepartures}/${o.totalDepartures} delayed dep</span>`;
 }
 
+// ── headline impact: passengers delayed + human time lost (person-years) ──
+const MIN_PER_YEAR = 525600;
+function fmtHumanTime(years) {
+  if (years >= 1) return `${years.toFixed(1)} person-years`;
+  const days = years * 365;
+  if (days >= 1) return `${Math.round(days)} person-days`;
+  return `${Math.round(days * 24)} person-hours`;
+}
+let lastImpactAt = 0;
+function updateImpact(data, now) {
+  if (!hasGenome || now - lastImpactAt < 1000) return;
+  lastImpactAt = now;
+  let paxDelayed = 0;
+  let paxMinutes = 0;
+  for (const d of data) {
+    const dm = d.delayMin || 0;
+    if (dm > 15) paxDelayed += d.pax || 0;
+    if (dm > 0) paxMinutes += (d.pax || 0) * dm;
+  }
+  els.impact.hidden = false;
+  els.impact.innerHTML =
+    `<span class="pax">${paxDelayed.toLocaleString()}</span> passengers delayed · ` +
+    `<b>${fmtHumanTime(paxMinutes / MIN_PER_YEAR)}</b> of human time lost`;
+}
+
 // ── render loop ──
 function frame() {
   const now = performance.now();
   const data = fleet.snapshot(now);
+  updateImpact(data, now);
   const liveById = new Map(data.map((d) => [d.id, d]));
   const layers = [];
   const selActive = !!currentSel;

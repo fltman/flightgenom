@@ -12,6 +12,7 @@
       <div class="brand">flightgenom</div>
       <div class="sub"><span id="count">0</span> aircraft · <span id="status">connecting…</span></div>
       <div class="src" id="source" hidden></div>
+      <div class="impact" id="impact" hidden></div>
       <div class="hud-tools">
         <button id="lb-btn" class="hud-btn" hidden>worst cascades</button>
         <button id="disrupt-btn" class="hud-btn" hidden>disruption</button>
@@ -56,6 +57,14 @@
     </aside>
 
     <div id="marks-bar" hidden></div>
+
+    <div id="diagram-modal" hidden>
+      <div class="dm-head">
+        <span id="diagram-title">Cascade diagram</span>
+        <button id="diagram-close" class="ai-mini" title="Close (Esc)">✕</button>
+      </div>
+      <div id="diagram-body"></div>
+    </div>
 
     <div id="tooltip" hidden></div>
 

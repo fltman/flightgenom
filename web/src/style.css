@@ -38,6 +38,9 @@ body {
 }
 #hud .sub { color: var(--dim); margin-top: 2px; }
 #hud .src { color: var(--dim); opacity: 0.7; font-size: 11px; margin-top: 1px; }
+#hud .impact { margin-top: 6px; font-size: 12px; max-width: 260px; }
+#hud .impact b { color: #ffb454; font-weight: 700; }
+#hud .impact .pax { color: var(--victim); font-weight: 700; }
 .hud-tools { display: flex; gap: 6px; margin-top: 8px; pointer-events: auto; }
 .hud-btn {
   background: var(--panel);
@@ -403,6 +406,51 @@ ul.tree li::before {
 .mark-x:hover { color: var(--victim); }
 .mark-clear { background: transparent; border: 1px solid var(--line); border-radius: 999px; color: var(--dim); cursor: pointer; font-size: 11px; padding: 2px 10px; }
 .mark-clear:hover { color: var(--txt); }
+
+#diagram-modal {
+  position: absolute;
+  inset: 5% 4%;
+  z-index: 9;
+  background: rgba(11, 15, 20, 0.97);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+#diagram-modal[hidden] { display: none; }
+.dm-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  font-weight: 700;
+  flex: none;
+}
+#diagram-body {
+  flex: 1;
+  overflow: auto;
+  padding: 16px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+#diagram-body svg { max-width: none; height: auto; }
+.p-btn-row { display: flex; gap: 8px; margin-bottom: 12px; }
+.p-btn-row .mark-btn { margin-bottom: 0; }
+.diagram-btn {
+  flex: none;
+  background: rgba(180, 90, 255, 0.16);
+  border: 1px solid rgba(180, 90, 255, 0.5);
+  color: #d7b6ff;
+  border-radius: 8px;
+  padding: 7px 12px;
+  cursor: pointer;
+  font: inherit;
+}
+.diagram-btn:hover { background: rgba(180, 90, 255, 0.28); }
 
 #tooltip {
   position: absolute;

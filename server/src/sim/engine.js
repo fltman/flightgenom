@@ -1,6 +1,7 @@
 import { AIRPORTS } from './airports.js';
 import { haversineKm, interpolate, bearing } from './geo.js';
 import { propagateGenome, MIN_TURN_MS, MIN_CONNECT_MS } from '../genome/propagate.js';
+import { estimatePax } from '../pax.js';
 
 const H = 3600 * 1000;
 const MIN = 60 * 1000;
@@ -79,6 +80,7 @@ export class SimEngine {
           primaryInjMin: 0,
           prev,
           conn: null,
+          pax: estimatePax({ seed: `${callsign}_${seq}` }),
         };
         this.legs.push(leg);
         this.byId.set(leg.id, leg);
@@ -159,6 +161,7 @@ export class SimEngine {
         parentId: leg.parentId,
         causeKind: leg.causeKind,
         blastRadius: leg.blastRadius,
+        pax: leg.pax,
       });
     }
     return out;
@@ -182,6 +185,7 @@ export class SimEngine {
       causeKind: l.causeKind,
       rootId: l.rootId,
       blastRadius: l.blastRadius,
+      pax: l.pax,
     }));
   }
 }

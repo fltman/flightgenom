@@ -11,6 +11,7 @@
 import { makeReadsb } from './readsb.js';
 import { WORLD_AIRPORTS } from '../sim/airports-world.js';
 import { haversineKm, bearing } from '../sim/geo.js';
+import { estimatePax } from '../pax.js';
 
 let feed = null;
 let feedName = 'airplaneslive';
@@ -90,6 +91,7 @@ function stickyFor(ac) {
       dest,
       primaryInjMin: pseudoPrimary(ac.hex),
       kind: rand01('k' + ac.hex) < 0.5 ? 'rotation' : 'connection',
+      pax: estimatePax({ type: ac.type, seed: ac.hex }),
     };
     sticky.set(ac.hex, s);
   }
@@ -113,6 +115,7 @@ function buildModel(list) {
       origin: s.origin,
       dest: s.dest,
       kind: s.kind,
+      pax: s.pax,
       primaryDelayMin: Math.round(s.primaryInjMin),
       reactionaryDelayMin: 0,
       delayMin: 0,
@@ -219,6 +222,7 @@ export async function fetchAircraft(cfg) {
     parentId: l.parentId,
     causeKind: l.causeKind,
     blastRadius: l.blastRadius,
+    pax: l.pax,
   }));
 }
 
@@ -241,6 +245,7 @@ export function graph() {
     causeKind: l.causeKind,
     rootId: l.rootId,
     blastRadius: l.blastRadius,
+    pax: l.pax,
   }));
 }
 

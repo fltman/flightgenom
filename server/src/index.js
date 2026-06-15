@@ -45,7 +45,7 @@ const initialCenter = config.dataSource === 'sim' ? null : [...config.center];
 const FIELDS = [
   'id', 'hex', 'callsign', 'lat', 'lon', 'track', 'speed', 'alt', 'onGround',
   'origin', 'dest', 'delayMin', 'primaryDelayMin', 'reactionaryDelayMin',
-  'genome', 'rootId', 'parentId', 'blastRadius',
+  'genome', 'rootId', 'parentId', 'blastRadius', 'pax',
 ];
 
 function serialize(a) {

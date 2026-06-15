@@ -52,6 +52,7 @@ export function makeReadsb(name) {
           speed: typeof a.gs === 'number' ? a.gs * KN_TO_MS : 0,
           alt: a.alt_baro === 'ground' ? 0 : typeof a.alt_baro === 'number' ? a.alt_baro * FT_TO_M : null,
           onGround: a.alt_baro === 'ground',
+          type: a.t || null, // ICAO aircraft type (used to estimate passengers)
         }));
     },
   };

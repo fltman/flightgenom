@@ -19,12 +19,13 @@ export function renderAnalysis(el, data, onPick) {
   const ai = data.ai || {};
   let html = '';
 
+  const num = (n) => (typeof n === 'number' ? n.toLocaleString() : '—');
   html +=
     `<div class="ai-chips">` +
     chip('Flights', s.totalFlights ?? '—') +
     chip('Delayed', s.delayedOver15 ?? '—') +
     chip('On-time', (s.onTimePct ?? '—') + '%') +
-    chip('Delay min', s.totalDelayMin ?? '—') +
+    chip('Pax hit', num(s.passengersDelayed)) +
     `</div>`;
 
   if (ai.available) {
@@ -43,7 +44,7 @@ export function renderAnalysis(el, data, onPick) {
         (p) =>
           `<button class="ai-row" data-id="${esc(p.id)}"><span class="ai-cs">${esc(p.callsign)}</span> <em>${esc(
             p.route
-          )}</em><span class="ai-r">+${p.delayMin}m · ${p.blastRadius}✈ · ${p.downstreamDelayMin}m down</span></button>`
+          )}</em><span class="ai-r">+${p.delayMin}m · ${p.blastRadius}✈ · ${(p.passengersAffected || 0).toLocaleString()}p</span></button>`
       )
       .join('')
   );

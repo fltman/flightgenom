@@ -31,6 +31,8 @@ export function computeMetrics(graph, nowMs) {
 
   const delayed = graph.filter((l) => l.delayMin > 15);
   const totalDelayMin = graph.reduce((s, l) => s + Math.max(0, l.delayMin || 0), 0);
+  const paxOf = (l) => l.pax || 0;
+  const paxAffected = (id) => descendants(id).reduce((s, d) => s + paxOf(d), paxOf(byId.get(id)));
 
   const summary = {
     totalFlights: graph.length,
@@ -39,6 +41,7 @@ export function computeMetrics(graph, nowMs) {
     onTimePct: graph.length ? Math.round(100 * (1 - delayed.length / graph.length)) : 100,
     totalDelayMin,
     worstSingleDelayMin: graph.reduce((m, l) => Math.max(m, l.delayMin || 0), 0),
+    passengersDelayed: delayed.reduce((s, l) => s + paxOf(l), 0),
   };
 
   const topPropagators = graph
@@ -53,6 +56,7 @@ export function computeMetrics(graph, nowMs) {
       isRoot: l.rootId === l.id,
       blastRadius: l.blastRadius,
       downstreamDelayMin: descendants(l.id).reduce((s, d) => s + Math.max(0, d.delayMin || 0), 0),
+      passengersAffected: paxAffected(l.id),
     }));
 
   // per-airport disruption + propagation leverage
@@ -90,7 +94,7 @@ export function computeMetrics(graph, nowMs) {
 }
 
 // ── LLM synthesis via OpenRouter ──
-const SYSTEM = `You are the duty operations analyst for a flight network's control center. You receive COMPUTED metrics that are already accurate — never recompute or invent numbers, only interpret them. Be concrete: reference specific callsigns and airport codes from the data. A "narrow sensitive point" is a single flight or airport whose disruption has outsized downstream leverage (a chokepoint / single point of failure). Reply with STRICT JSON only, no markdown.`;
+const SYSTEM = `You are the duty operations analyst for a flight network's control center. You receive COMPUTED metrics that are already accurate — never recompute or invent numbers, only interpret them. Be concrete: reference specific callsigns and airport codes from the data. A "narrow sensitive point" is a single flight or airport whose disruption has outsized downstream leverage (a chokepoint / single point of failure). Where it sharpens the point, quantify impact in PASSENGERS (passengersAffected / passengersDelayed are provided). Reply with STRICT JSON only, no markdown.`;
 
 function userPrompt(metrics) {
   return `Metrics for the current network state:

@@ -18,6 +18,21 @@ function downstreamDelay(id, childrenByParent) {
   return sum;
 }
 
+// Passengers affected = this flight's pax + every downstream flight's pax.
+function affectedPax(leg, childrenByParent) {
+  let sum = leg.pax || 0;
+  const seen = new Set();
+  (function rec(x) {
+    for (const c of childrenByParent.get(x) || []) {
+      if (seen.has(c.id)) continue;
+      seen.add(c.id);
+      sum += c.pax || 0;
+      rec(c.id);
+    }
+  })(leg.id);
+  return sum;
+}
+
 // A leg is a root cause if it's its own root (or has no parent) and it actually
 // started a delay of its own.
 function isRoot(l) {
@@ -36,6 +51,7 @@ export function worstCascades(legs, childrenByParent, limit = 8) {
       delayMin: l.delayMin || 0,
       blastRadius: l.blastRadius || 0,
       downstreamDelay: downstreamDelay(l.id, childrenByParent),
+      pax: affectedPax(l, childrenByParent),
     }))
     .sort((a, b) => b.blastRadius - a.blastRadius || b.downstreamDelay - a.downstreamDelay)
     .slice(0, limit);
@@ -59,7 +75,7 @@ export function renderLeaderboard(bodyEl, rows, onPick, onMark, isMarked = () =>
         `</button>` +
         `<span class="lb-meta">` +
         `<span class="lb-delay">+${r.delayMin}m</span>` +
-        `<span class="lb-blast">${r.blastRadius} flights</span>` +
+        `<span class="lb-blast">${r.blastRadius}✈ · ${r.pax.toLocaleString()}p</span>` +
         `</span>` +
         `<button class="lb-mark${isMarked(r.id) ? ' on' : ''}" data-mark="${r.id}" title="Mark this genome">⚑</button>` +
         `</div>`

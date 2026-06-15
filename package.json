@@ -15,7 +15,8 @@
   "dependencies": {
     "@fastify/websocket": "^11.0.1",
     "dotenv": "^16.4.5",
-    "fastify": "^5.1.0"
+    "fastify": "^5.1.0",
+    "mermaid": "^11.15.0"
   },
   "devDependencies": {
     "@deck.gl/core": "^9.0.38",
