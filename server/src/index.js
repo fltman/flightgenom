@@ -81,6 +81,9 @@ fastify.get('/api/config', async () => {
     airports: meta.airports || [],
     hasGenome: !!meta.hasGenome,
     attribution: meta.attribution || null,
+    // [lat, lon] focus point for point-query live sources, so the map opens
+    // where the data actually is.
+    center: config.dataSource === 'sim' ? null : config.center,
     analyst: {
       enabled: !!config.openrouterKey,
       defaultModel: config.analystModel,

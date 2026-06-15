@@ -143,6 +143,10 @@ map.addControl(overlay);
     // active data source line: attribution string if provided, else the source id
     els.source.textContent = `source: ${cfg.attribution || cfg.dataSource || (cfg.simulated ? 'sim' : 'live')}`;
     els.source.hidden = false;
+    // For live point-query sources, open the map where the data is.
+    if (Array.isArray(cfg.center) && cfg.center.length === 2) {
+      map.jumpTo({ center: [cfg.center[1], cfg.center[0]], zoom: 6.5 });
+    }
     for (const a of cfg.airports || []) airportMap[a.code] = a;
     if (hasGenome) {
       const graph = await fetch('/api/graph').then((r) => r.json());
