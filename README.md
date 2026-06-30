@@ -1,5 +1,7 @@
 # flightgenom ✈️🧬
 
+[![Support me on Patreon](https://img.shields.io/badge/Patreon-Support%20my%20work-FF424D?style=flat&logo=patreon&logoColor=white)](https://www.patreon.com/AndersBjarby)
+
 **A realtime flight map — like Flightradar24 — that tracks the _delay genome_.**
 
 Every flight that's running late inherits the IDs of the upstream flights that
